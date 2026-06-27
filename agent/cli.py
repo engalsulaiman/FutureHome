@@ -4,7 +4,7 @@ import os
 import sys
 
 from .base import AgentConfig, run_agent
-from .runners import infra
+from .runners import ai_test, browser, infra
 
 
 def main() -> None:
@@ -48,7 +48,7 @@ def _runner_for(kind: str):
     if kind == "infra":
         return infra.run
     if kind == "browser":
-        raise SystemExit("Browser agent ships in Phase 2 — not yet implemented")
+        return browser.run
     if kind == "ai":
-        raise SystemExit("AI agent ships in Phase 3 — not yet implemented")
+        return ai_test.run
     raise SystemExit(f"Unknown agent kind: {kind}")

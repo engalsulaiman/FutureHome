@@ -3,13 +3,13 @@
 Long-running daemons that register with the orchestrator, poll for assigned
 tasks, run them, and report results.
 
-Three agent kinds are planned:
+Three agent kinds are supported:
 
-| Kind      | Status     | Purpose                                                   |
-| --------- | ---------- | --------------------------------------------------------- |
-| `infra`   | ✅ Phase 1 | Ping / TCP / HTTP / disk / cert-expiry health checks      |
-| `browser` | ⏳ Phase 2 | Drives Playwright through declarative user-journey steps  |
-| `ai`      | ⏳ Phase 3 | Uses Claude to propose, run, and triage tests in a repo   |
+| Kind      | Purpose                                                   |
+| --------- | --------------------------------------------------------- |
+| `infra`   | Ping / TCP / HTTP / disk / cert-expiry health checks      |
+| `browser` | Drives Playwright (Chromium) through declarative steps    |
+| `ai`      | Uses Claude to propose, run, and triage tests in a repo   |
 
 All three share the same protocol — a 5-second poll loop calling
 `POST /api/agents/tasks/claim` and reporting back via
@@ -39,6 +39,14 @@ pip install -r requirements.txt
 
 The daemon logs to stdout. CTRL-C to stop.
 
+## Per-kind setup
+
+| Kind      | Extra setup                                                                       |
+| --------- | --------------------------------------------------------------------------------- |
+| `infra`   | None — `httpx` only.                                                              |
+| `browser` | `pip install playwright` then `playwright install chromium`. Override the binary by setting `PLAYWRIGHT_CHROMIUM_PATH` if needed. |
+| `ai`      | Set `ANTHROPIC_API_KEY` in the daemon's environment. Defaults to `claude-opus-4-8`; override per-task via `payload.model`. |
+
 ## Infra task payload schema
 
 ```json
@@ -56,3 +64,43 @@ The daemon logs to stdout. CTRL-C to stop.
 The agent runs every check, capturing pass/fail per check, and reports a
 single terminal status (`passed` if all checks passed, `failed` if any
 check failed without raising, `error` if the runner itself crashed).
+
+## Browser task payload schema
+
+```json
+{
+  "base_url": "https://example.com",
+  "viewport": {"width": 1280, "height": 720},
+  "timeout_ms": 10000,
+  "steps": [
+    {"goto": "/login"},
+    {"fill": {"selector": "#email", "value": "demo@x.com"}},
+    {"click": {"selector": "#submit"}},
+    {"wait_for": {"selector": "#welcome"}},
+    {"expect_text": "Welcome"},
+    {"expect_url_contains": "/dashboard"}
+  ]
+}
+```
+
+Per-step `passed/failed` records plus a base64 PNG of the final page
+state are returned in `result`. The runner stops on the first failing
+step.
+
+## AI test task payload schema
+
+```json
+{
+  "repo_url": "https://github.com/user/repo",
+  "ref": "main",
+  "instruction": "Write a unit test for src/calculator.py covering add and divide-by-zero",
+  "target_files": ["src/calculator.py"],
+  "test_command": "pytest -q",
+  "model": "claude-opus-4-8"
+}
+```
+
+The agent clones the repo (shallow), asks Claude for a focused test file
+via structured outputs, writes the file under the repo root, executes
+`test_command`, and reports `passed` on exit-0 or `failed` plus a triage
+report (`{verdict, summary, suggested_fix}`) on non-zero exit.

@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Database / artifacts
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+backend/.env
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+frontend/.env
+frontend/.env.local
+*.tsbuildinfo
+# Stray emitted JS next to .tsx sources (shouldn't happen with noEmit, belt-and-braces).
+frontend/src/**/*.js
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

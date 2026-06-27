@@ -1,7 +1,15 @@
-import type { RunStatus } from "../api/client";
+import type { AgentTaskStatus, RunStatus } from "../api/client";
 
-export function StatusBadge({ status }: { status: RunStatus }) {
-  return <span className={`badge ${status}`}>{status}</span>;
+export function StatusBadge({ status }: { status: RunStatus | AgentTaskStatus }) {
+  // claimed/queued/running map to existing badge styles via the same class names.
+  const klass = status === "claimed" ? "running" : status;
+  return <span className={`badge ${klass}`}>{status}</span>;
+}
+
+export function isAgentOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  const age = Date.now() - new Date(lastSeenAt).getTime();
+  return age < 90_000;
 }
 
 export function formatTime(iso: string): string {

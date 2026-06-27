@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from .models import Role, RunStatus
+from .models import AgentKind, AgentTaskStatus, Role, RunStatus
 
 
 class Token(BaseModel):
@@ -109,3 +109,75 @@ class RunOut(BaseModel):
 class RunDetail(RunOut):
     logs: str
     triggered_by: UserOut | None
+
+
+class AgentCreate(BaseModel):
+    kind: AgentKind
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
+
+
+class AgentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    organization_id: int
+    kind: AgentKind
+    name: str
+    description: str | None
+    capabilities: list[str]
+    hostname: str | None
+    last_seen_at: datetime | None
+    created_at: datetime
+
+
+class AgentCreated(AgentOut):
+    token: str = Field(description="Plaintext registration token. Shown ONCE — store it in the agent's config.")
+
+
+class AgentHeartbeat(BaseModel):
+    hostname: str | None = None
+    capabilities: list[str] | None = None
+
+
+class AgentTaskCreate(BaseModel):
+    agent_id: int
+    name: str = Field(min_length=1, max_length=200)
+    payload: dict = Field(default_factory=dict)
+
+
+class AgentTaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    agent_id: int
+    kind: AgentKind
+    name: str
+    status: AgentTaskStatus
+    error_message: str | None
+    queued_at: datetime
+    claimed_at: datetime | None
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class AgentTaskDetail(AgentTaskOut):
+    payload: dict
+    result: dict | None
+    logs: str
+    triggered_by: UserOut | None
+
+
+class AgentTaskClaim(BaseModel):
+    """Returned to an agent polling for work."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    kind: AgentKind
+    name: str
+    payload: dict
+
+
+class AgentTaskReport(BaseModel):
+    status: AgentTaskStatus = Field(description="Terminal status — passed/failed/error/canceled")
+    result: dict | None = None
+    logs: str | None = None
+    error_message: str | None = None

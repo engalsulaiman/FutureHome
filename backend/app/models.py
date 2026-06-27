@@ -34,6 +34,22 @@ class RunStatus(str, enum.Enum):
     canceled = "canceled"
 
 
+class AgentKind(str, enum.Enum):
+    infra = "infra"
+    browser = "browser"
+    ai = "ai"
+
+
+class AgentTaskStatus(str, enum.Enum):
+    queued = "queued"
+    claimed = "claimed"
+    running = "running"
+    passed = "passed"
+    failed = "failed"
+    error = "error"
+    canceled = "canceled"
+
+
 class Organization(Base):
     __tablename__ = "organizations"
 
@@ -118,4 +134,45 @@ class TestRun(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     suite: Mapped[TestSuite] = relationship(back_populates="runs")
+    triggered_by: Mapped[User | None] = relationship()
+
+
+class Agent(Base):
+    __tablename__ = "agents"
+    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_org_agent_name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[AgentKind] = mapped_column(Enum(AgentKind), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(Text)
+    token_hash: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    capabilities: Mapped[list[str]] = mapped_column(JSON, default=list)
+    hostname: Mapped[str | None] = mapped_column(String(255))
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    organization: Mapped[Organization] = relationship()
+    tasks: Mapped[list["AgentTask"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
+
+
+class AgentTask(Base):
+    __tablename__ = "agent_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    agent_id: Mapped[int] = mapped_column(ForeignKey("agents.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[AgentKind] = mapped_column(Enum(AgentKind), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[AgentTaskStatus] = mapped_column(Enum(AgentTaskStatus), default=AgentTaskStatus.queued, index=True)
+    result: Mapped[dict | None] = mapped_column(JSON)
+    logs: Mapped[str] = mapped_column(Text, default="")
+    error_message: Mapped[str | None] = mapped_column(Text)
+    triggered_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    queued_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    agent: Mapped[Agent] = relationship(back_populates="tasks")
     triggered_by: Mapped[User | None] = relationship()

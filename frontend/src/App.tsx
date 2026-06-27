@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import RunDetail from "./pages/RunDetail";
+import Agents from "./pages/Agents";
+import AgentDetail from "./pages/AgentDetail";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { me, orgId, switchOrg, logout } = useAuth();
@@ -30,6 +32,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <nav className="nav">
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/projects">Projects</NavLink>
+          <NavLink to="/agents">Agents</NavLink>
         </nav>
         <div className="footer">
           {me && (
@@ -71,6 +74,11 @@ export default function App() {
         element={<RequireAuth><ProjectDetail /></RequireAuth>}
       />
       <Route path="/runs/:runId" element={<RequireAuth><RunDetail /></RequireAuth>} />
+      <Route path="/agents" element={<RequireAuth><Agents /></RequireAuth>} />
+      <Route
+        path="/agents/:agentId"
+        element={<RequireAuth><AgentDetail /></RequireAuth>}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

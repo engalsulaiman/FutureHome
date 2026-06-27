@@ -92,3 +92,48 @@ export type RunDetail = Run & {
   logs: string;
   triggered_by: User | null;
 };
+
+export type AgentKind = "infra" | "browser" | "ai";
+
+export type AgentTaskStatus =
+  | "queued"
+  | "claimed"
+  | "running"
+  | "passed"
+  | "failed"
+  | "error"
+  | "canceled";
+
+export type Agent = {
+  id: number;
+  organization_id: number;
+  kind: AgentKind;
+  name: string;
+  description: string | null;
+  capabilities: string[];
+  hostname: string | null;
+  last_seen_at: string | null;
+  created_at: string;
+};
+
+export type AgentCreated = Agent & { token: string };
+
+export type AgentTask = {
+  id: number;
+  agent_id: number;
+  kind: AgentKind;
+  name: string;
+  status: AgentTaskStatus;
+  error_message: string | null;
+  queued_at: string;
+  claimed_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+export type AgentTaskDetail = AgentTask & {
+  payload: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  logs: string;
+  triggered_by: User | null;
+};

@@ -5,8 +5,8 @@ from jose import JWTError
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import Membership, Organization, Role, User
-from .security import decode_token
+from .models import Agent, Membership, Organization, Role, User
+from .security import decode_token, hash_agent_token
 
 
 def _bearer_token(authorization: str | None) -> str:
@@ -54,3 +54,15 @@ def require_admin(membership: Annotated[Membership, Depends(get_current_membersh
 
 def get_current_org(membership: Annotated[Membership, Depends(get_current_membership)]) -> Organization:
     return membership.organization
+
+
+def get_current_agent(
+    db: Annotated[Session, Depends(get_db)],
+    x_agent_token: Annotated[str | None, Header()] = None,
+) -> Agent:
+    if not x_agent_token:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing X-Agent-Token header")
+    agent = db.query(Agent).filter(Agent.token_hash == hash_agent_token(x_agent_token)).first()
+    if not agent:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Unknown agent token")
+    return agent
